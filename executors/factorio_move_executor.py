@@ -33,8 +33,8 @@ class FactorioMoveExecutor:
             normalized_target_position.y,
         )
 
-        movement_started = bool(adapter_result.get("started", False))
-        movement_completed = bool(adapter_result.get("completed", False))
+        movement_started = adapter_result.started
+        movement_completed = adapter_result.completed
 
         return ActionExecutionResult(
             success=movement_started,

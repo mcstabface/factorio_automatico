@@ -4,21 +4,23 @@ import pytest
 
 from contracts.actions import Action, ActionType
 from contracts.artifacts import ActionExecutionResult
+from contracts.world_state import Position
 from executors.factorio_move_executor import FactorioMoveExecutor
+from integrations.factorio.factorio_client import MoveToCommandResult
 
 
 class MockFactorioClient:
     def __init__(self) -> None:
         self.calls: list[tuple[float, float]] = []
 
-    def move_to(self, x: float, y: float) -> dict[str, object]:
+    def move_to(self, x: float, y: float) -> MoveToCommandResult:
         self.calls.append((x, y))
-        return {
-            "started": True,
-            "completed": False,
-            "command": "move_to",
-            "target_position": {"x": x, "y": y},
-        }
+        return MoveToCommandResult(
+            started=True,
+            completed=False,
+            command="move_to",
+            target_position=Position(x=x, y=y),
+        )
 
 
 def test_move_to_calls_adapter_with_exact_coordinates() -> None:
