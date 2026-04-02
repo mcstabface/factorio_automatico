@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from contracts.actions import Action
-from director.run_single_action import RUN_ID, run_single_action
+from director.run_single_action import RUN_ID, run_seed_replay_demo, run_single_action
 
 
 def _custom_raw_state() -> dict:
@@ -136,13 +136,22 @@ def test_run_single_action_pipeline_with_stub_executor(tmp_path: Path) -> None:
     assert result["movement_transition"] == movement_transition
     assert terminal_trace["title"] == "Factorio MES Single Action Trace"
     assert terminal_trace["mode"] == "stub"
-    assert terminal_trace["summary"] == "MOVE_TO accepted via stub_action_executor"
+    assert (
+    terminal_trace["summary"]
+    == "MOVE_TO accepted via stub_action_executor from seed demo-seed-001"
+)
     assert terminal_trace["events"][0]["step"] == "state_normalization"
     assert terminal_trace["events"][1]["step"] == "action_validation"
     assert terminal_trace["events"][2]["step"] == "stub_execution"
     assert terminal_trace["events"][3]["step"] == "post_execution_observation"
     assert terminal_trace["events"][4]["step"] == "movement_transition"
     assert terminal_trace["events"][0]["status"] == "success"
+    assert terminal_trace["events"][0]["payload"]["seed"] == "demo-seed-001"
+    assert terminal_trace["events"][0]["payload"]["starting_position"] == {
+        "x": 0.0,
+        "y": 0.0,
+    }
+    assert terminal_trace["events"][0]["payload"]["tick"] == 123
     assert terminal_trace["events"][1]["status"] == "success"
     assert terminal_trace["events"][2]["status"] == "accepted"
     assert terminal_trace["events"][3]["status"] == "success"
@@ -189,18 +198,93 @@ def test_run_single_action_pipeline_with_factorio_executor(tmp_path: Path) -> No
     assert result["movement_transition"] == movement_transition
     assert terminal_trace["title"] == "Factorio MES Single Action Trace"
     assert terminal_trace["mode"] == "factorio"
-    assert terminal_trace["summary"] == "MOVE_TO accepted via factorio_move_executor"
+    assert (
+    terminal_trace["summary"]
+    == "MOVE_TO accepted via factorio_move_executor from seed demo-seed-001"
+)
     assert terminal_trace["events"][0]["step"] == "state_normalization"
     assert terminal_trace["events"][1]["step"] == "action_validation"
     assert terminal_trace["events"][2]["step"] == "factorio_execution"
     assert terminal_trace["events"][3]["step"] == "post_execution_observation"
     assert terminal_trace["events"][4]["step"] == "movement_transition"
+    assert terminal_trace["events"][0]["status"] == "success"
+    assert terminal_trace["events"][0]["payload"]["seed"] == "demo-seed-001"
+    assert terminal_trace["events"][0]["payload"]["starting_position"] == {
+        "x": 0.0,
+        "y": 0.0,
+    }
+    assert terminal_trace["events"][0]["payload"]["tick"] == 123
     assert terminal_trace["events"][2]["status"] == "accepted"
     assert result["terminal_trace"] == terminal_trace
     assert run_audit["run_id"] == RUN_ID
     assert run_audit["executor_type"] == "factorio"
     assert run_audit["pipeline"][2] == "factorio_execution"
     assert run_audit["pipeline"][3] == "post_execution_observation"
+
+
+def test_run_single_action_pipeline_with_factorio_executor_seed_override(
+    tmp_path: Path,
+) -> None:
+    result = run_single_action(
+        tmp_path,
+        executor_type="factorio",
+        factorio_seed="viewer-seed-777",
+    )
+
+    run_dir = tmp_path / RUN_ID
+    terminal_trace = json.loads(
+        (run_dir / "terminal_trace.json").read_text(encoding="utf-8")
+    )
+    input_state_snapshot = json.loads(
+        (run_dir / "input_state_snapshot.json").read_text(encoding="utf-8")
+    )
+
+    assert result["executor_type"] == "factorio"
+    assert input_state_snapshot["world_session"]["seed"] == "viewer-seed-777"
+    assert terminal_trace["mode"] == "factorio"
+    assert (
+        terminal_trace["summary"]
+        == "MOVE_TO accepted via factorio_move_executor from seed viewer-seed-777"
+    )
+    assert terminal_trace["events"][0]["payload"]["seed"] == "viewer-seed-777"
+    assert terminal_trace["events"][0]["payload"]["starting_position"] == {
+        "x": 0.0,
+        "y": 0.0,
+    }
+    assert result["terminal_trace"] == terminal_trace
+
+
+def test_run_seed_replay_demo_returns_matching_factorio_runs(tmp_path: Path) -> None:
+    result = run_seed_replay_demo(
+        artifact_root=tmp_path,
+        factorio_seed="viewer-seed-777",
+        emit_terminal_trace=False,
+    )
+
+    assert result["seed"] == "viewer-seed-777"
+    assert result["matching_summary"] is True
+    assert result["matching_trace_events"] is True
+    assert result["matching_movement_transition"] is True
+
+    first_run = result["first_run"]
+    second_run = result["second_run"]
+
+    assert first_run["executor_type"] == "factorio"
+    assert second_run["executor_type"] == "factorio"
+
+    assert (
+        first_run["terminal_trace"]["summary"]
+        == "MOVE_TO accepted via factorio_move_executor from seed viewer-seed-777"
+    )
+    assert (
+        second_run["terminal_trace"]["summary"]
+        == "MOVE_TO accepted via factorio_move_executor from seed viewer-seed-777"
+    )
+
+    assert first_run["terminal_trace"]["events"] == second_run["terminal_trace"]["events"]
+    assert first_run["movement_transition"] == second_run["movement_transition"]
+    assert first_run["terminal_trace"]["events"][0]["payload"]["seed"] == "viewer-seed-777"
+    assert second_run["terminal_trace"]["events"][0]["payload"]["seed"] == "viewer-seed-777"
 
 
 def test_run_single_action_rejects_unsupported_executor_type(tmp_path: Path) -> None:

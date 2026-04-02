@@ -43,6 +43,37 @@ class Position:
 
 
 @dataclass(frozen=True, slots=True)
+class WorldSessionState:
+    seed: str | None
+    starting_position: Position | None
+
+    @classmethod
+    def from_mapping(
+        cls, data: Any, *, field_name: str = "world_session"
+    ) -> "WorldSessionState":
+        if data is None:
+            return cls(seed=None, starting_position=None)
+
+        mapping = _require_mapping(data, field_name)
+        seed = mapping.get("seed")
+        starting_position = mapping.get("starting_position")
+
+        if seed is not None:
+            seed = _require_str(seed, f"{field_name}.seed")
+
+        if starting_position is not None:
+            starting_position = Position.from_mapping(
+                starting_position,
+                field_name=f"{field_name}.starting_position",
+            )
+
+        return cls(
+            seed=seed,
+            starting_position=starting_position,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class InventoryItem:
     name: str
     count: int
@@ -115,7 +146,9 @@ class PlayerState:
             reach_distance=reach_distance,
             mining_speed=mining_speed,
             inventory=tuple(
-                InventoryItem.from_mapping(item, field_name=f"{field_name}.inventory[{i}]")
+                InventoryItem.from_mapping(
+                    item, field_name=f"{field_name}.inventory[{i}]"
+                )
                 for i, item in enumerate(inventory_data)
             ),
             crafting_queue=tuple(
@@ -181,7 +214,9 @@ class RecipeAvailability:
     craftable_now: tuple[str, ...]
 
     @classmethod
-    def from_mapping(cls, data: Any, *, field_name: str = "recipes") -> "RecipeAvailability":
+    def from_mapping(
+        cls, data: Any, *, field_name: str = "recipes"
+    ) -> "RecipeAvailability":
         mapping = _require_mapping(data, field_name)
         craftable_now = mapping.get("craftable_now")
         if not isinstance(craftable_now, list):
@@ -229,16 +264,13 @@ class Objective:
         if current_goal is None:
             return cls(current_goal=None)
 
-        return cls(
-            current_goal=_require_str(
-                current_goal, f"{field_name}.current_goal"
-            )
-        )
+        return cls(current_goal=_require_str(current_goal, f"{field_name}.current_goal"))
 
 
 @dataclass(frozen=True, slots=True)
 class WorldState:
     tick: int
+    world_session: WorldSessionState
     player: PlayerState
     nearby_resources: tuple[NearbyResource, ...]
     nearby_entities: tuple[NearbyEntity, ...]
@@ -263,6 +295,9 @@ class WorldState:
 
         return cls(
             tick=tick,
+            world_session=WorldSessionState.from_mapping(
+                mapping.get("world_session")
+            ),
             player=PlayerState.from_mapping(mapping.get("player")),
             nearby_resources=tuple(
                 NearbyResource.from_mapping(

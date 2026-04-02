@@ -60,6 +60,29 @@ def _serialize_for_return(payload: Any) -> dict[str, Any]:
     return json.loads(json.dumps(asdict(payload)))
 
 
+def _build_runtime_context(
+    executor_type: Literal["stub", "factorio"],
+    raw_state: dict[str, Any] | None,
+    factorio_seed: str | None,
+) -> tuple[dict[str, Any], StubActionExecutor | FactorioMoveExecutor]:
+    if executor_type == "stub":
+        resolved_raw_state = raw_state if raw_state is not None else _load_mock_world_state()
+        return resolved_raw_state, StubActionExecutor()
+
+    if executor_type == "factorio":
+        client = (
+            FactorioClient(seed=factorio_seed)
+            if factorio_seed is not None
+            else FactorioClient()
+        )
+        resolved_raw_state = (
+            raw_state if raw_state is not None else client.get_world_state_snapshot()
+        )
+        return resolved_raw_state, FactorioMoveExecutor(client)
+
+    raise ValueError(f"Unsupported executor_type: {executor_type}")
+
+
 def _build_movement_transition(
     raw_state: dict[str, Any],
     execution_result: ActionExecutionResult,
@@ -93,6 +116,8 @@ def _build_terminal_trace(
         summary=(
             f"{execution_result.action_type.value} "
             f"{execution_result.execution_status} via {execution_result.executor_name}"
+            f" from seed "
+            f"{normalization_result.world_state.world_session.seed or 'unknown'}"
         ),
         events=[
             TerminalTraceEvent(
@@ -101,6 +126,15 @@ def _build_terminal_trace(
                 message="World state normalized",
                 payload={
                     "tick": normalization_result.world_state.tick,
+                    "seed": normalization_result.world_state.world_session.seed,
+                    "starting_position": (
+                        None
+                        if normalization_result.world_state.world_session.starting_position
+                        is None
+                        else asdict(
+                            normalization_result.world_state.world_session.starting_position
+                        )
+                    ),
                 },
             ),
             TerminalTraceEvent(
@@ -148,6 +182,47 @@ def _emit_terminal_trace(trace: TerminalTraceArtifact) -> None:
             print(json.dumps(event.payload, indent=2, sort_keys=True))
 
 
+def run_seed_replay_demo(
+    artifact_root: str | Path = DEFAULT_ARTIFACT_ROOT,
+    *,
+    factorio_seed: str,
+    emit_terminal_trace: bool = False,
+) -> dict[str, Any]:
+    first_run = run_single_action(
+        artifact_root=artifact_root,
+        executor_type="factorio",
+        run_id=f"{RUN_ID}_seed_replay_first",
+        emit_terminal_trace=emit_terminal_trace,
+        factorio_seed=factorio_seed,
+    )
+
+    second_run = run_single_action(
+        artifact_root=artifact_root,
+        executor_type="factorio",
+        run_id=f"{RUN_ID}_seed_replay_second",
+        emit_terminal_trace=emit_terminal_trace,
+        factorio_seed=factorio_seed,
+    )
+
+    return {
+        "seed": factorio_seed,
+        "first_run": first_run,
+        "second_run": second_run,
+        "matching_summary": (
+            first_run["terminal_trace"]["summary"]
+            == second_run["terminal_trace"]["summary"]
+        ),
+        "matching_trace_events": (
+            first_run["terminal_trace"]["events"]
+            == second_run["terminal_trace"]["events"]
+        ),
+        "matching_movement_transition": (
+            first_run["movement_transition"]
+            == second_run["movement_transition"]
+        ),
+    }
+
+
 def run_single_action(
     artifact_root: str | Path = DEFAULT_ARTIFACT_ROOT,
     executor_type: Literal["stub", "factorio"] = "stub",
@@ -155,9 +230,13 @@ def run_single_action(
     raw_state: dict[str, Any] | None = None,
     candidate_action: Action | dict[str, Any] | None = None,
     emit_terminal_trace: bool = False,
+    factorio_seed: str | None = None,
 ) -> dict[str, Any]:
-    if raw_state is None:
-        raw_state = _load_mock_world_state()
+    raw_state, executor = _build_runtime_context(
+        executor_type,
+        raw_state,
+        factorio_seed,
+    )
 
     if candidate_action is None:
         candidate_action = _build_move_to_action()
@@ -172,7 +251,6 @@ def run_single_action(
         run_id,
     )
 
-    executor = _build_executor(executor_type)
     execution_result: ActionExecutionResult = executor.execute(
         action_validation_result.action
     )

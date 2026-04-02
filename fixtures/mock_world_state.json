@@ -1,5 +1,12 @@
 {
   "tick": 123,
+  "world_session": {
+    "seed": "demo-seed-001",
+    "starting_position": {
+      "x": 0.0,
+      "y": 0.0
+    }
+  },
   "player": {
     "position": {
       "x": 0.0,

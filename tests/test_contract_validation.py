@@ -8,6 +8,10 @@ from validation.state_validator import validate_world_state
 def _valid_world_state() -> dict:
     return {
         "tick": 123,
+        "world_session": {
+            "seed": "demo-seed-001",
+            "starting_position": {"x": 0.0, "y": 0.0},
+        },
         "player": {
             "position": {"x": 0.0, "y": 0.0},
             "reach_distance": 10.0,
@@ -42,6 +46,10 @@ def _valid_world_state() -> dict:
 def test_valid_world_state() -> None:
     validated = validate_world_state(_valid_world_state())
     assert validated.tick == 123
+    assert validated.world_session.seed == "demo-seed-001"
+    assert validated.world_session.starting_position is not None
+    assert validated.world_session.starting_position.x == 0.0
+    assert validated.world_session.starting_position.y == 0.0
     assert validated.objective.current_goal == "bootstrap iron production"
 
 
@@ -51,6 +59,15 @@ def test_validate_world_state_returns_same_instance_for_world_state_input() -> N
     validated = validate_world_state(world_state)
 
     assert validated is world_state
+
+
+def test_valid_world_state_with_missing_world_session_block() -> None:
+    world_state = _valid_world_state()
+    del world_state["world_session"]
+
+    validated = validate_world_state(world_state)
+    assert validated.world_session.seed is None
+    assert validated.world_session.starting_position is None
 
 
 def test_valid_world_state_with_null_objective() -> None:
@@ -72,6 +89,22 @@ def test_valid_world_state_with_missing_objective_block() -> None:
 def test_invalid_world_state_with_empty_objective_string() -> None:
     world_state = _valid_world_state()
     world_state["objective"]["current_goal"] = ""
+
+    with pytest.raises((TypeError, ValueError)):
+        validate_world_state(world_state)
+
+
+def test_invalid_world_state_with_empty_seed_string() -> None:
+    world_state = _valid_world_state()
+    world_state["world_session"]["seed"] = ""
+
+    with pytest.raises((TypeError, ValueError)):
+        validate_world_state(world_state)
+
+
+def test_invalid_world_state_with_malformed_starting_position() -> None:
+    world_state = _valid_world_state()
+    world_state["world_session"]["starting_position"] = {"x": 0.0}
 
     with pytest.raises((TypeError, ValueError)):
         validate_world_state(world_state)
