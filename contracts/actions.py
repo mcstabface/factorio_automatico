@@ -35,6 +35,29 @@ class Action:
     expected_effects: tuple[str, ...]
 
     @classmethod
+    def move_to(
+        cls,
+        *,
+        action_id: str,
+        x: float,
+        y: float,
+        preconditions: tuple[str, ...] = (),
+        expected_effects: tuple[str, ...] = (),
+    ) -> "Action":
+        return cls(
+            action_id=action_id,
+            action_type=ActionType.MOVE_TO,
+            params={
+                "target_position": {
+                    "x": float(x),
+                    "y": float(y),
+                }
+            },
+            preconditions=preconditions,
+            expected_effects=expected_effects,
+        )
+
+    @classmethod
     def from_mapping(cls, data: Any) -> "Action":
         mapping = _require_mapping(data, "action")
         params = mapping.get("params")
