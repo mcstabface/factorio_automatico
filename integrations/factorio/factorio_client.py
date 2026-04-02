@@ -25,6 +25,8 @@ class FactorioClient:
         starting_position: Position | None = None,
         position_probe_command: str | None = None,
         position_probe_timeout_seconds: float = 2.0,
+        move_to_command: str | None = None,
+        move_to_timeout_seconds: float = 5.0,
     ) -> None:
         self._seed = seed
         self._starting_position = starting_position or Position(x=0.0, y=0.0)
@@ -33,6 +35,8 @@ class FactorioClient:
             position_probe_command or os.environ.get("FACTORIO_POSITION_COMMAND")
         )
         self._position_probe_timeout_seconds = position_probe_timeout_seconds
+        self._move_to_command = move_to_command or os.environ.get("FACTORIO_MOVE_TO_COMMAND")
+        self._move_to_timeout_seconds = move_to_timeout_seconds
 
     def get_seed(self) -> str:
         return self._seed
@@ -112,6 +116,33 @@ class FactorioClient:
         except (TypeError, ValueError):
             return None
 
+    def _execute_live_move_to(self, x: float, y: float) -> Position | None:
+        if not self._move_to_command:
+            return None
+
+        command = f"{self._move_to_command} {float(x)} {float(y)}"
+
+        try:
+            completed_process = subprocess.run(
+                command,
+                shell=True,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=self._move_to_timeout_seconds,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+        if completed_process.returncode != 0:
+            return None
+
+        move_output = completed_process.stdout.strip()
+        if not move_output:
+            return None
+
+        return self._parse_position_probe_output(move_output)
+
     def get_player_position(self) -> Position:
         live_position = self._read_live_player_position()
         if live_position is not None:
@@ -180,7 +211,12 @@ class FactorioClient:
             x=float(x),
             y=float(y),
         )
-        self._player_position = target_position
+
+        live_position = self._execute_live_move_to(x=target_position.x, y=target_position.y)
+        if live_position is not None:
+            self._player_position = live_position
+        else:
+            self._player_position = target_position
 
         return MoveToCommandResult(
             started=True,
