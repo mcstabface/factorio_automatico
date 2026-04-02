@@ -63,16 +63,29 @@ def _authenticate(sock: socket.socket, password: str) -> None:
 
 def _execute(sock: socket.socket, command: str) -> str:
     command_request_id = 2
+    terminator_request_id = 3
+
     sock.sendall(_build_packet(command_request_id, SERVERDATA_EXECCOMMAND, command))
-    response_id, response_type, response_body = _read_packet(sock)
+    sock.sendall(_build_packet(terminator_request_id, SERVERDATA_RESPONSE_VALUE, ""))
 
-    if response_id != command_request_id:
-        raise RuntimeError("unexpected RCON response id")
+    response_chunks: list[str] = []
 
-    if response_type != SERVERDATA_RESPONSE_VALUE:
-        raise RuntimeError("unexpected RCON response type")
+    while True:
+        response_id, response_type, response_body = _read_packet(sock)
 
-    return response_body.strip()
+        if response_id == terminator_request_id:
+            break
+
+        if response_id != command_request_id:
+            raise RuntimeError(f"unexpected RCON response id: {response_id}")
+
+        if response_type != SERVERDATA_RESPONSE_VALUE:
+            raise RuntimeError(f"unexpected RCON response type: {response_type}")
+
+        if response_body:
+            response_chunks.append(response_body)
+
+    return "".join(response_chunks).strip()
 
 
 def main() -> int:
@@ -91,7 +104,8 @@ def main() -> int:
     )
 
     try:
-        with socket.create_connection((host, port), timeout=2.0) as sock:
+        with socket.create_connection((host, port), timeout=5.0) as sock:
+            sock.settimeout(5.0)
             _authenticate(sock, password)
             response_body = _execute(sock, command)
     except (OSError, ValueError, RuntimeError) as exc:
