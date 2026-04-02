@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from contracts.actions import Action, ActionType
+from contracts.artifacts import ActionExecutionResult
 from executors.factorio_move_executor import FactorioMoveExecutor
 
 
@@ -13,7 +14,8 @@ class MockFactorioClient:
     def move_to(self, x: float, y: float) -> dict[str, object]:
         self.calls.append((x, y))
         return {
-            "ok": True,
+            "started": True,
+            "completed": False,
             "command": "move_to",
             "target_position": {"x": x, "y": y},
         }
@@ -63,14 +65,14 @@ def test_execution_result_shape_is_stable_and_deterministic() -> None:
 
     result = executor.execute(action)
 
-    assert result == {
-        "success": True,
-        "action_id": "move-2",
-        "action_type": "MOVE_TO",
-        "target_position": {"x": 1.0, "y": 2.0},
-        "adapter_result": {
-            "ok": True,
-            "command": "move_to",
-            "target_position": {"x": 1.0, "y": 2.0},
-        },
-    }
+    assert isinstance(result, ActionExecutionResult)
+    assert result.success is True
+    assert result.executor_name == "factorio_move_executor"
+    assert result.action_id == "move-2"
+    assert result.action_type == "MOVE_TO"
+    assert result.execution_status == "accepted"
+    assert result.target_position.x == 1.0
+    assert result.target_position.y == 2.0
+    assert result.observed_result.movement_started is True
+    assert result.observed_result.movement_completed is False
+    assert result.error_message is None
