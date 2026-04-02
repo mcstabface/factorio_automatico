@@ -1,0 +1,2 @@
+export FACTORIO_POSITION_COMMAND='python scripts/get_player_position.py'
+export FACTORIO_RAW_POSITION_COMMAND='python scripts/get_player_position_rcon.py'
