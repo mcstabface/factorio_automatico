@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from contracts.actions import Action, ActionType
+from contracts.actions import Action
 from director.run_single_action import RUN_ID, run_single_action
 
 
@@ -44,10 +44,10 @@ def _custom_raw_state() -> dict:
 
 
 def _custom_move_action() -> Action:
-    return Action(
+    return Action.move_to(
         action_id="move-to-custom-position",
-        action_type=ActionType.MOVE_TO,
-        params={"target_position": {"x": 9.0, "y": 7.0}},
+        x=9.0,
+        y=7.0,
         preconditions=("world state is normalized",),
         expected_effects=("player target position is echoed by executor",),
     )
@@ -215,6 +215,5 @@ def test_run_single_action_accepts_explicit_candidate_action(tmp_path: Path) -> 
 
     assert result["run_id"] == custom_run_id
     assert validated_action["action_id"] == "move-to-custom-position"
-    assert validated_action["target_position"] if False else True
     assert validated_action["params"]["target_position"] == {"x": 9.0, "y": 7.0}
     assert execution_result["target_position"] == {"x": 9.0, "y": 7.0}

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from artifacts.run_artifact_writer import RunArtifactWriter
-from contracts.actions import Action, ActionType
+from contracts.actions import Action
 from contracts.artifacts import ActionExecutionResult, RunAudit
 from executors.factorio_move_executor import FactorioMoveExecutor
 from executors.stub_action_executor import StubActionExecutor
@@ -25,10 +25,10 @@ def _load_mock_world_state() -> dict[str, Any]:
 
 
 def _build_move_to_action() -> Action:
-    return Action(
+    return Action.move_to(
         action_id="move-to-bootstrap-position",
-        action_type=ActionType.MOVE_TO,
-        params={"target_position": {"x": 5.0, "y": 3.0}},
+        x=5.0,
+        y=3.0,
         preconditions=("world state is normalized",),
         expected_effects=("player target position is echoed by executor",),
     )
