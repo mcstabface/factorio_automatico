@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+import os
+import subprocess
+from typing import Any
 
 from contracts.world_state import Position
 
@@ -19,10 +23,16 @@ class FactorioClient:
         *,
         seed: str = "demo-seed-001",
         starting_position: Position | None = None,
+        position_probe_command: str | None = None,
+        position_probe_timeout_seconds: float = 2.0,
     ) -> None:
         self._seed = seed
         self._starting_position = starting_position or Position(x=0.0, y=0.0)
         self._player_position = self._starting_position
+        self._position_probe_command = (
+            position_probe_command or os.environ.get("FACTORIO_POSITION_COMMAND")
+        )
+        self._position_probe_timeout_seconds = position_probe_timeout_seconds
 
     def get_seed(self) -> str:
         return self._seed
@@ -35,10 +45,82 @@ class FactorioClient:
             self._seed = seed
         self._player_position = self._starting_position
 
+    def _read_live_player_position(self) -> Position | None:
+        if not self._position_probe_command:
+            return None
+
+        try:
+            completed_process = subprocess.run(
+                self._position_probe_command,
+                shell=True,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=self._position_probe_timeout_seconds,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+        if completed_process.returncode != 0:
+            return None
+
+        probe_output = completed_process.stdout.strip()
+        if not probe_output:
+            return None
+
+        return self._parse_position_probe_output(probe_output)
+
+    def _parse_position_probe_output(self, probe_output: str) -> Position | None:
+        last_line = probe_output.splitlines()[-1].strip()
+        if not last_line:
+            return None
+
+        parsed_output: Any | None = None
+        try:
+            parsed_output = json.loads(last_line)
+        except json.JSONDecodeError:
+            parsed_output = None
+
+        if isinstance(parsed_output, dict):
+            direct_position = self._position_from_mapping(parsed_output)
+            if direct_position is not None:
+                return direct_position
+
+            nested_position = parsed_output.get("position")
+            if isinstance(nested_position, dict):
+                return self._position_from_mapping(nested_position)
+
+        if "," not in last_line:
+            return None
+
+        x_str, y_str = [part.strip() for part in last_line.split(",", maxsplit=1)]
+        try:
+            return Position(x=float(x_str), y=float(y_str))
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _position_from_mapping(payload: dict[str, Any]) -> Position | None:
+        if "x" not in payload or "y" not in payload:
+            return None
+
+        try:
+            return Position(
+                x=float(payload["x"]),
+                y=float(payload["y"]),
+            )
+        except (TypeError, ValueError):
+            return None
+
     def get_player_position(self) -> Position:
+        live_position = self._read_live_player_position()
+        if live_position is not None:
+            self._player_position = live_position
         return self._player_position
 
     def get_world_state_snapshot(self) -> dict[str, object]:
+        live_position = self.get_player_position()
+
         return {
             "tick": 123,
             "world_session": {
@@ -50,8 +132,8 @@ class FactorioClient:
             },
             "player": {
                 "position": {
-                    "x": self._player_position.x,
-                    "y": self._player_position.y,
+                    "x": live_position.x,
+                    "y": live_position.y,
                 },
                 "reach_distance": 10.0,
                 "mining_speed": 0.5,
