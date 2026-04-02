@@ -76,11 +76,10 @@ def _execute(sock: socket.socket, command: str) -> str:
         except socket.timeout:
             break
 
-        if response_id != command_request_id:
-            continue
-
-        if response_type != SERVERDATA_RESPONSE_VALUE:
-            continue
+        print(
+            f"DEBUG packet id={response_id} type={response_type} body={response_body!r}",
+            file=sys.stderr,
+        )
 
         if response_body:
             response_chunks.append(response_body)
