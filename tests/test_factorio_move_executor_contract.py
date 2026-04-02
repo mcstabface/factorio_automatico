@@ -69,7 +69,7 @@ def test_execution_result_shape_is_stable_and_deterministic() -> None:
     assert result.success is True
     assert result.executor_name == "factorio_move_executor"
     assert result.action_id == "move-2"
-    assert result.action_type == "MOVE_TO"
+    assert result.action_type is ActionType.MOVE_TO
     assert result.execution_status == "accepted"
     assert result.target_position.x == 1.0
     assert result.target_position.y == 2.0

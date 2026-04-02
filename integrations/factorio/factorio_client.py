@@ -7,7 +7,8 @@ class FactorioClient:
 
     def move_to(self, x: float, y: float) -> dict[str, object]:
         return {
-            "ok": True,
+            "started": True,
+            "completed": False,
             "command": "move_to",
             "target_position": {
                 "x": float(x),

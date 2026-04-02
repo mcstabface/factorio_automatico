@@ -24,7 +24,7 @@ class StubActionExecutor:
             success=True,
             executor_name=self.executor_name,
             action_id=action.action_id,
-            action_type=action.action_type.value,
+            action_type=action.action_type,
             execution_status="accepted",
             target_position=normalized_target_position,
             observed_result=MovementObservation(

@@ -14,12 +14,12 @@ class RunArtifactWriter:
         self,
         *,
         run_id: str,
-        input_state_snapshot: dict[str, Any],
+        input_state_snapshot: Any,
         state_normalization_debug: Any,
         validated_action: Any,
         action_validation_debug: Any,
-        execution_result: dict[str, Any],
-        run_audit: dict[str, Any],
+        execution_result: Any,
+        run_audit: Any,
     ) -> Path:
         run_dir = self.artifact_root / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -37,12 +37,13 @@ class RunArtifactWriter:
 
         return run_dir
 
-    def _write_json(self, path: Path, payload: Any) -> None:
+    def _serialize_payload(self, payload: Any) -> Any:
         if is_dataclass(payload):
-            serialized = asdict(payload)
-        else:
-            serialized = payload
+            return asdict(payload)
+        return payload
 
+    def _write_json(self, path: Path, payload: Any) -> None:
+        serialized = self._serialize_payload(payload)
         path.write_text(
             json.dumps(serialized, indent=2, sort_keys=True),
             encoding="utf-8",

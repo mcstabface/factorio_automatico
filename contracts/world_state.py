@@ -220,6 +220,9 @@ class Objective:
 
     @classmethod
     def from_mapping(cls, data: Any, *, field_name: str = "objective") -> "Objective":
+        if data is None:
+            return cls(current_goal=None)
+
         mapping = _require_mapping(data, field_name)
         current_goal = mapping.get("current_goal")
 

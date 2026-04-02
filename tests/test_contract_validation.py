@@ -1,5 +1,6 @@
 import pytest
 
+from contracts.world_state import WorldState
 from validation.action_validator import validate_action
 from validation.state_validator import validate_world_state
 
@@ -44,9 +45,25 @@ def test_valid_world_state() -> None:
     assert validated.objective.current_goal == "bootstrap iron production"
 
 
+def test_validate_world_state_returns_same_instance_for_world_state_input() -> None:
+    world_state = WorldState.from_mapping(_valid_world_state())
+
+    validated = validate_world_state(world_state)
+
+    assert validated is world_state
+
+
 def test_valid_world_state_with_null_objective() -> None:
     world_state = _valid_world_state()
     world_state["objective"]["current_goal"] = None
+
+    validated = validate_world_state(world_state)
+    assert validated.objective.current_goal is None
+
+
+def test_valid_world_state_with_missing_objective_block() -> None:
+    world_state = _valid_world_state()
+    del world_state["objective"]
 
     validated = validate_world_state(world_state)
     assert validated.objective.current_goal is None

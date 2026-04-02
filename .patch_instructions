@@ -1,0 +1,122 @@
+MK1 Patch Execution Protocol
+Purpose
+
+This protocol defines how patches are proposed, applied, tested, and continued during MK1 development.
+
+It is designed for fast iteration while preserving deterministic, auditable development practices consistent with MK1 architecture.
+
+Core Working Rule
+
+Work proceeds in small sequential patches.
+
+For each patch cycle, the assistant must provide in the same message:
+
+the patch code
+the exact file(s) the patch applies to
+test code and/or test instructions
+the expected pass condition
+the next file needed for the following patch
+any specific output required from testing
+
+This allows patching and testing to occur while the next step is already prepared.
+
+Patch Boundaries
+
+Each patch must explicitly state:
+
+file(s) allowed to change
+purpose of the patch
+invariants touched, if any
+whether unseen surrounding code is required
+
+The assistant must not assume permission to modify files beyond those named in the patch.
+
+No Guessing Rule
+
+If the assistant requires code context not already provided, it must ask for the current file and must not guess missing implementation details.
+
+If behavior, ownership, or routing location is unclear, the assistant must ask before patching.
+
+Spelling and typing mistakes from the user are the only place where best-effort interpretation is allowed.
+
+Test Return Rule
+
+Default rule:
+
+if no special return is requested, sending the next file is treated as confirmation that the prior patch passed
+
+If specific validation is required, the assistant must say exactly what to return, such as:
+
+terminal output
+traceback
+generated artifact path
+database query result
+diff snippet
+Failure Rule
+
+If a patch fails, normal forward patching stops.
+
+Troubleshooting begins immediately using the failure output.
+
+Failure returns should include:
+
+exact command run
+full terminal output or traceback
+confirmation that the file was edited exactly as provided
+any extra manual changes made locally
+
+Once resolved, the normal patch → test → next patch cycle resumes.
+
+Patch Size Rule
+
+Patches should be the smallest safe implementation step.
+
+Avoid redesign, hidden routing changes, schema drift, or unrelated cleanup unless required to fix incorrect behavior.
+
+This preserves deterministic, auditable development and aligns with MK1 change policy.
+
+main.py Rule
+
+main.py is treated as a runner and display surface only.
+
+Patches must not move routing logic, pipeline ownership, or control-plane behavior into main.py.
+
+Routing Rule
+
+Any patch affecting routing must respect the routing single source of truth.
+
+Routing logic belongs only in the capability registry / deterministic routing layer, not in ad hoc expert logic or patch-local shortcuts.
+
+Side-Effect Rule
+
+Only explicitly side-effecting experts may write persistent state.
+
+Patches must not introduce hidden writes, implicit DB mutations, or uncontrolled file output.
+
+Recommended Patch Message Format
+
+Each patch message should use this structure:
+
+Patch Goal
+What this patch changes.
+
+Files
+Exact file(s) to modify.
+
+Invariants Touched
+List or none.
+
+Patch
+Code block(s), properly indented and ready to paste.
+
+Test
+Exact command(s) to run.
+
+Expected Result
+What passing looks like.
+
+Return To Me
+Exact output needed, or none (sending next file implies pass).
+
+Next File Needed
+Name of the file required for the next patch.

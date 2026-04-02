@@ -13,7 +13,7 @@ class ExpertDebugArtifact:
     success: bool
     summary: str
     considered_facts: tuple[str, ...]
-    proposed_actions: tuple[Action, ...]
+    proposed_actions: tuple[Action, ...] = ()
     warnings: tuple[str, ...] = ()
     error_message: str | None = None
     duration_ms: int = 0

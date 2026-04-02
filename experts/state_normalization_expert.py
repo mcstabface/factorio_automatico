@@ -17,21 +17,24 @@ class StateNormalizationResult:
 class StateNormalizationExpert:
     expert_name = "state_normalization_expert"
 
-    def run(self, raw_state: dict[str, Any], run_id: str) -> StateNormalizationResult:
+    def run(
+        self,
+        raw_state: WorldState | dict[str, Any],
+        run_id: str,
+    ) -> StateNormalizationResult:
         world_state = validate_world_state(raw_state)
         debug_artifact = ExpertDebugArtifact(
             run_id=run_id,
             expert_name=self.expert_name,
             tick=world_state.tick,
             success=True,
-            summary="Raw mocked state normalized and validated.",
+            summary="State normalized and validated.",
             considered_facts=(
                 f"tick={world_state.tick}",
                 f"inventory_items={len(world_state.player.inventory)}",
                 f"nearby_resources={len(world_state.nearby_resources)}",
                 f"nearby_entities={len(world_state.nearby_entities)}",
             ),
-            proposed_actions=(),
             warnings=(),
             error_message=None,
             duration_ms=0,
