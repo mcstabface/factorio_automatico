@@ -121,18 +121,7 @@ def main() -> int:
 
     command_start = f"/chatgpt-move-step {target_x},{target_y}"
 
-    command_stop = (
-        "/c "
-        "local players = game.connected_players; "
-        "if #players == 0 then "
-        "  helpers.write_file('chatgpt/move_to_error.txt', 'no-connected-players', false, 0); "
-        "else "
-        "  local player = players[1]; "
-        "  player.walking_state = {walking = false, direction = player.walking_state.direction}; "
-        "  local p = player.position; "
-        "  helpers.write_file('chatgpt/move_to_result.json', helpers.table_to_json({x = p.x, y = p.y}), false, 0); "
-        "end"
-    )
+    command_stop = "/chatgpt-stop-walk"
 
     try:
         with socket.create_connection((host, port), timeout=5.0) as sock:
@@ -169,8 +158,6 @@ def main() -> int:
         with socket.create_connection((host, port), timeout=5.0) as sock:
             sock.settimeout(1.0)
             _authenticate(sock, password)
-
-            _execute(sock, command_stop)
             _execute(sock, command_stop)
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"RCON move failed during stop: {exc}", file=sys.stderr)

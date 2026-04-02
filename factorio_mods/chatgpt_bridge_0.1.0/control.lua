@@ -97,3 +97,22 @@ commands.add_command("chatgpt-move-step", "Take one bounded walking step toward 
     y = position.y
   })
 end)
+
+commands.add_command("chatgpt-stop-walk", "Stop first connected player walking and write result to script-output/chatgpt/move_to_result.json", function(command)
+  local player = first_connected_player()
+  if player == nil then
+    write_error("chatgpt/move_to_error.txt", "no-connected-players")
+    return
+  end
+
+  player.walking_state = {
+    walking = false,
+    direction = player.walking_state.direction
+  }
+
+  local position = player.position
+  write_json("chatgpt/move_to_result.json", {
+    x = position.x,
+    y = position.y
+  })
+end)
