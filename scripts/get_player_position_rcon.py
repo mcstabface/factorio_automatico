@@ -97,11 +97,7 @@ def main() -> int:
         print("FACTORIO_RCON_PASSWORD is not set", file=sys.stderr)
         return 1
 
-    command = (
-        "/c "
-        "local p = game.player.position; "
-        "rcon.print('{\"x\":' .. p.x .. ',\"y\":' .. p.y .. '}')"
-    )
+    command = '/c rcon.print("hello-from-rcon")'
 
     try:
         with socket.create_connection((host, port), timeout=5.0) as sock:
