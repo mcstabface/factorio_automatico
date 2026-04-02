@@ -48,17 +48,18 @@ def _authenticate(sock: socket.socket, password: str) -> None:
     auth_request_id = 1
     sock.sendall(_build_packet(auth_request_id, SERVERDATA_AUTH, password))
 
-    first_id, first_type, _first_body = _read_packet(sock)
-    second_id, second_type, _second_body = _read_packet(sock)
+    while True:
+        response_id, response_type, _response_body = _read_packet(sock)
 
-    valid_ids = {first_id, second_id}
-    valid_types = {first_type, second_type}
+        if response_id == -1:
+            raise RuntimeError("RCON authentication failed")
 
-    if -1 in valid_ids:
-        raise RuntimeError("RCON authentication failed")
-
-    if SERVERDATA_AUTH_RESPONSE not in valid_types:
-        raise RuntimeError("RCON auth response not received")
+        if response_type == SERVERDATA_AUTH_RESPONSE:
+            if response_id != auth_request_id:
+                raise RuntimeError(
+                    f"unexpected auth response id: {response_id}"
+                )
+            return
 
 
 def _execute(sock: socket.socket, command: str) -> str:
@@ -102,10 +103,20 @@ def main() -> int:
     try:
         with socket.create_connection((host, port), timeout=5.0) as sock:
             sock.settimeout(5.0)
-            _authenticate(sock, password)
-            response_body = _execute(sock, command)
-    except (OSError, ValueError, RuntimeError) as exc:
-        print(f"RCON probe failed: {exc}", file=sys.stderr)
+
+            try:
+                _authenticate(sock, password)
+            except (OSError, ValueError, RuntimeError) as exc:
+                print(f"RCON auth failed: {exc}", file=sys.stderr)
+                return 1
+
+            try:
+                response_body = _execute(sock, command)
+            except (OSError, ValueError, RuntimeError) as exc:
+                print(f"RCON execute failed: {exc}", file=sys.stderr)
+                return 1
+    except (OSError, ValueError) as exc:
+        print(f"RCON connection failed: {exc}", file=sys.stderr)
         return 1
 
     if not response_body:
