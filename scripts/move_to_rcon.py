@@ -112,50 +112,14 @@ def main() -> int:
     output_dir = factorio_user_dir / "script-output" / "chatgpt"
     result_path = output_dir / "move_to_result.json"
     error_path = output_dir / "move_to_error.txt"
-    started_path = output_dir / "move_to_started.txt"
+    started_path = output_dir / "move_to_started.json"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for path in (result_path, error_path, started_path):
         if path.exists():
             path.unlink()
 
-    command_start = (
-        "/c "
-        "local players = game.connected_players; "
-        f"local target = {{x = {target_x}, y = {target_y}}}; "
-        "if #players == 0 then "
-        "  helpers.write_file('chatgpt/move_to_error.txt', 'no-connected-players', false, 0); "
-        "else "
-        "  local player = players[1]; "
-        "  local p = player.position; "
-        "  local dx = target.x - p.x; "
-        "  local dy = target.y - p.y; "
-        "  local direction = nil; "
-        "  if math.abs(dx) < 0.2 and math.abs(dy) < 0.2 then "
-        "    helpers.write_file('chatgpt/move_to_result.json', helpers.table_to_json({x = p.x, y = p.y}), false, 0); "
-        "  else "
-        "    if dx > 0.2 and dy > 0.2 then "
-        "      direction = defines.direction.southeast; "
-        "    elseif dx > 0.2 and dy < -0.2 then "
-        "      direction = defines.direction.northeast; "
-        "    elseif dx < -0.2 and dy > 0.2 then "
-        "      direction = defines.direction.southwest; "
-        "    elseif dx < -0.2 and dy < -0.2 then "
-        "      direction = defines.direction.northwest; "
-        "    elseif dx > 0 then "
-        "      direction = defines.direction.east; "
-        "    elseif dx < 0 then "
-        "      direction = defines.direction.west; "
-        "    elseif dy > 0 then "
-        "      direction = defines.direction.south; "
-        "    else "
-        "      direction = defines.direction.north; "
-        "    end; "
-        "    player.walking_state = {walking = true, direction = direction}; "
-        "    helpers.write_file('chatgpt/move_to_started.txt', 'started', false, 0); "
-        "  end; "
-        "end"
-    )
+    command_start = f"/chatgpt-move-step {target_x},{target_y}"
 
     command_stop = (
         "/c "
@@ -174,8 +138,6 @@ def main() -> int:
         with socket.create_connection((host, port), timeout=5.0) as sock:
             sock.settimeout(1.0)
             _authenticate(sock, password)
-
-            _execute(sock, command_start)
             _execute(sock, command_start)
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"RCON move failed: {exc}", file=sys.stderr)

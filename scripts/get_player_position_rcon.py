@@ -99,32 +99,18 @@ def main() -> int:
     output_dir = factorio_user_dir / "script-output" / "chatgpt"
     output_path = output_dir / "player_position.json"
     error_path = output_dir / "player_position_error.txt"
-    debug_path = output_dir / "player_debug.json"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    for path in (output_path, error_path, debug_path):
+    for path in (output_path, error_path):
         if path.exists():
             path.unlink()
 
-    command = (
-        "/c "
-        "local players = game.connected_players; "
-        "local names = {}; "
-        "for i, player in pairs(players) do names[i] = player.name end; "
-        "helpers.write_file('chatgpt/player_debug.json', helpers.table_to_json({count = #players, names = names}), false, 0); "
-        "if #players == 0 then "
-        "  helpers.write_file('chatgpt/player_position_error.txt', 'no-connected-players', false, 0); "
-        "else "
-        "  local p = players[1].position; "
-        "  helpers.write_file('chatgpt/player_position.json', helpers.table_to_json({x = p.x, y = p.y}), false, 0); "
-        "end"
-    )
+    command = "/chatgpt-get-position"
 
     try:
         with socket.create_connection((host, port), timeout=5.0) as sock:
             sock.settimeout(1.0)
             _authenticate(sock, password)
-            _execute(sock, command)
             _execute(sock, command)
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"RCON probe failed: {exc}", file=sys.stderr)
@@ -137,24 +123,14 @@ def main() -> int:
             return 0
 
         if error_path.exists():
-            debug_text = ""
-            if debug_path.exists():
-                debug_text = debug_path.read_text(encoding="utf-8").strip()
             error_text = error_path.read_text(encoding="utf-8").strip()
-            print(
-                f"position probe error: {error_text}; debug={debug_text}",
-                file=sys.stderr,
-            )
+            print(f"position probe error: {error_text}", file=sys.stderr)
             return 1
 
         time.sleep(0.1)
 
-    debug_text = ""
-    if debug_path.exists():
-        debug_text = debug_path.read_text(encoding="utf-8").strip()
-
     print(
-        f"position output file was not created: {output_path}; debug={debug_text}",
+        f"position output file was not created: {output_path}",
         file=sys.stderr,
     )
     return 1
