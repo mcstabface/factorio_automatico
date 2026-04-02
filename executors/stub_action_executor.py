@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from contracts.actions import Action, ActionType
-from contracts.artifacts import ActionExecutionResult, MovementObservation
+from contracts.artifacts import (
+    ActionExecutionResult,
+    MovementObservation,
+    StubObservationUnavailable,
+)
 from contracts.world_state import Position
 
 
@@ -32,4 +36,11 @@ class StubActionExecutor:
                 movement_completed=False,
             ),
             error_message=None,
+        )
+
+    def observe_player_position(self) -> StubObservationUnavailable:
+        return StubObservationUnavailable(
+            observation_type="stub",
+            status="not_available",
+            reason="stub executor does not provide live game observation",
         )

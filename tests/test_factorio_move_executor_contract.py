@@ -12,15 +12,22 @@ from integrations.factorio.factorio_client import MoveToCommandResult
 class MockFactorioClient:
     def __init__(self) -> None:
         self.calls: list[tuple[float, float]] = []
+        self.observation_calls = 0
+        self.player_position = Position(x=0.0, y=0.0)
 
     def move_to(self, x: float, y: float) -> MoveToCommandResult:
         self.calls.append((x, y))
+        self.player_position = Position(x=x, y=y)
         return MoveToCommandResult(
             started=True,
             completed=False,
             command="move_to",
             target_position=Position(x=x, y=y),
         )
+
+    def get_player_position(self) -> Position:
+        self.observation_calls += 1
+        return self.player_position
 
 
 def test_move_to_calls_adapter_with_exact_coordinates() -> None:
@@ -78,3 +85,34 @@ def test_execution_result_shape_is_stable_and_deterministic() -> None:
     assert result.observed_result.movement_started is True
     assert result.observed_result.movement_completed is False
     assert result.error_message is None
+
+
+def test_observe_player_position_delegates_to_factorio_client() -> None:
+    client = MockFactorioClient()
+    executor = FactorioMoveExecutor(client)
+
+    observed_position = executor.observe_player_position()
+
+    assert observed_position == Position(x=0.0, y=0.0)
+    assert client.observation_calls == 1
+
+
+def test_execute_changes_observed_player_position() -> None:
+    client = MockFactorioClient()
+    executor = FactorioMoveExecutor(client)
+    action = Action(
+        action_id="move-3",
+        action_type=ActionType.MOVE_TO,
+        params={"target_position": {"x": 5.0, "y": 3.0}},
+        preconditions=(),
+        expected_effects=(),
+    )
+
+    before_position = executor.observe_player_position()
+    executor.execute(action)
+    after_position = executor.observe_player_position()
+
+    assert before_position == Position(x=0.0, y=0.0)
+    assert after_position == Position(x=5.0, y=3.0)
+    assert client.calls == [(5.0, 3.0)]
+    assert client.observation_calls == 2

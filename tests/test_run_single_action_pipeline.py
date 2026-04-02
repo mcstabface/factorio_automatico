@@ -67,6 +67,9 @@ def test_run_single_action_pipeline_with_stub_executor(tmp_path: Path) -> None:
         "validated_action.json",
         "action_validation_debug.json",
         "execution_result.json",
+        "post_execution_observation.json",
+        "movement_transition.json",
+        "terminal_trace.json",
         "run_audit.json",
     )
     for filename in expected_files:
@@ -83,6 +86,15 @@ def test_run_single_action_pipeline_with_stub_executor(tmp_path: Path) -> None:
     )
     execution_result = json.loads(
         (run_dir / "execution_result.json").read_text(encoding="utf-8")
+    )
+    post_execution_observation = json.loads(
+        (run_dir / "post_execution_observation.json").read_text(encoding="utf-8")
+    )
+    movement_transition = json.loads(
+        (run_dir / "movement_transition.json").read_text(encoding="utf-8")
+    )
+    terminal_trace = json.loads(
+        (run_dir / "terminal_trace.json").read_text(encoding="utf-8")
     )
     run_audit = json.loads((run_dir / "run_audit.json").read_text(encoding="utf-8"))
 
@@ -111,9 +123,35 @@ def test_run_single_action_pipeline_with_stub_executor(tmp_path: Path) -> None:
     assert execution_result["observed_result"]["movement_started"] is True
     assert execution_result["observed_result"]["movement_completed"] is False
     assert execution_result["error_message"] is None
+    assert post_execution_observation["observation_type"] == "stub"
+    assert post_execution_observation["status"] == "not_available"
+    assert (
+        post_execution_observation["reason"]
+        == "stub executor does not provide live game observation"
+    )
+    assert result["post_execution_observation"] == post_execution_observation
+    assert movement_transition["before_position"] == {"x": 0.0, "y": 0.0}
+    assert movement_transition["requested_target_position"] == {"x": 5.0, "y": 3.0}
+    assert movement_transition["after_position"] == post_execution_observation
+    assert result["movement_transition"] == movement_transition
+    assert terminal_trace["title"] == "Factorio MES Single Action Trace"
+    assert terminal_trace["mode"] == "stub"
+    assert terminal_trace["summary"] == "MOVE_TO accepted via stub_action_executor"
+    assert terminal_trace["events"][0]["step"] == "state_normalization"
+    assert terminal_trace["events"][1]["step"] == "action_validation"
+    assert terminal_trace["events"][2]["step"] == "stub_execution"
+    assert terminal_trace["events"][3]["step"] == "post_execution_observation"
+    assert terminal_trace["events"][4]["step"] == "movement_transition"
+    assert terminal_trace["events"][0]["status"] == "success"
+    assert terminal_trace["events"][1]["status"] == "success"
+    assert terminal_trace["events"][2]["status"] == "accepted"
+    assert terminal_trace["events"][3]["status"] == "success"
+    assert terminal_trace["events"][4]["status"] == "success"
+    assert result["terminal_trace"] == terminal_trace
     assert run_audit["run_id"] == RUN_ID
     assert run_audit["executor_type"] == "stub"
     assert run_audit["pipeline"][2] == "stub_execution"
+    assert run_audit["pipeline"][3] == "post_execution_observation"
 
 
 def test_run_single_action_pipeline_with_factorio_executor(tmp_path: Path) -> None:
@@ -122,6 +160,15 @@ def test_run_single_action_pipeline_with_factorio_executor(tmp_path: Path) -> No
     run_dir = tmp_path / RUN_ID
     execution_result = json.loads(
         (run_dir / "execution_result.json").read_text(encoding="utf-8")
+    )
+    post_execution_observation = json.loads(
+        (run_dir / "post_execution_observation.json").read_text(encoding="utf-8")
+    )
+    movement_transition = json.loads(
+        (run_dir / "movement_transition.json").read_text(encoding="utf-8")
+    )
+    terminal_trace = json.loads(
+        (run_dir / "terminal_trace.json").read_text(encoding="utf-8")
     )
     run_audit = json.loads((run_dir / "run_audit.json").read_text(encoding="utf-8"))
 
@@ -134,9 +181,26 @@ def test_run_single_action_pipeline_with_factorio_executor(tmp_path: Path) -> No
     assert execution_result["observed_result"]["movement_started"] is True
     assert execution_result["observed_result"]["movement_completed"] is False
     assert execution_result["error_message"] is None
+    assert result["post_execution_observation"] == post_execution_observation
+    assert post_execution_observation == {"x": 5.0, "y": 3.0}
+    assert movement_transition["before_position"] == {"x": 0.0, "y": 0.0}
+    assert movement_transition["requested_target_position"] == {"x": 5.0, "y": 3.0}
+    assert movement_transition["after_position"] == {"x": 5.0, "y": 3.0}
+    assert result["movement_transition"] == movement_transition
+    assert terminal_trace["title"] == "Factorio MES Single Action Trace"
+    assert terminal_trace["mode"] == "factorio"
+    assert terminal_trace["summary"] == "MOVE_TO accepted via factorio_move_executor"
+    assert terminal_trace["events"][0]["step"] == "state_normalization"
+    assert terminal_trace["events"][1]["step"] == "action_validation"
+    assert terminal_trace["events"][2]["step"] == "factorio_execution"
+    assert terminal_trace["events"][3]["step"] == "post_execution_observation"
+    assert terminal_trace["events"][4]["step"] == "movement_transition"
+    assert terminal_trace["events"][2]["status"] == "accepted"
+    assert result["terminal_trace"] == terminal_trace
     assert run_audit["run_id"] == RUN_ID
     assert run_audit["executor_type"] == "factorio"
     assert run_audit["pipeline"][2] == "factorio_execution"
+    assert run_audit["pipeline"][3] == "post_execution_observation"
 
 
 def test_run_single_action_rejects_unsupported_executor_type(tmp_path: Path) -> None:
@@ -187,11 +251,15 @@ def test_run_single_action_accepts_explicit_raw_state(tmp_path: Path) -> None:
     state_normalization_debug = json.loads(
         (run_dir / "state_normalization_debug.json").read_text(encoding="utf-8")
     )
+    movement_transition = json.loads(
+        (run_dir / "movement_transition.json").read_text(encoding="utf-8")
+    )
 
     assert result["run_id"] == custom_run_id
     assert input_state_snapshot["tick"] == 456
     assert input_state_snapshot["player"]["position"] == {"x": 10.0, "y": 20.0}
     assert state_normalization_debug["tick"] == 456
+    assert movement_transition["before_position"] == {"x": 10.0, "y": 20.0}
 
 
 def test_run_single_action_accepts_explicit_candidate_action(tmp_path: Path) -> None:
@@ -212,8 +280,12 @@ def test_run_single_action_accepts_explicit_candidate_action(tmp_path: Path) -> 
     execution_result = json.loads(
         (run_dir / "execution_result.json").read_text(encoding="utf-8")
     )
+    movement_transition = json.loads(
+        (run_dir / "movement_transition.json").read_text(encoding="utf-8")
+    )
 
     assert result["run_id"] == custom_run_id
     assert validated_action["action_id"] == "move-to-custom-position"
     assert validated_action["params"]["target_position"] == {"x": 9.0, "y": 7.0}
     assert execution_result["target_position"] == {"x": 9.0, "y": 7.0}
+    assert movement_transition["requested_target_position"] == {"x": 9.0, "y": 7.0}

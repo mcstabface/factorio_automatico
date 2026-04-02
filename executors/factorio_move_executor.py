@@ -49,3 +49,6 @@ class FactorioMoveExecutor:
             ),
             error_message=None if movement_started else "move_to was not accepted",
         )
+
+    def observe_player_position(self) -> Position:
+        return self.factorio_client.get_player_position()

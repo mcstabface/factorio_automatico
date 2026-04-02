@@ -20,6 +20,9 @@ class RunArtifactWriter:
         action_validation_debug: Any,
         execution_result: Any,
         run_audit: Any,
+        post_execution_observation: Any | None = None,
+        movement_transition: Any | None = None,
+        terminal_trace: Any | None = None,
     ) -> Path:
         run_dir = self.artifact_root / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -33,6 +36,25 @@ class RunArtifactWriter:
             run_dir / "action_validation_debug.json", action_validation_debug
         )
         self._write_json(run_dir / "execution_result.json", execution_result)
+
+        if post_execution_observation is not None:
+            self._write_json(
+                run_dir / "post_execution_observation.json",
+                post_execution_observation,
+            )
+
+        if movement_transition is not None:
+            self._write_json(
+                run_dir / "movement_transition.json",
+                movement_transition,
+            )
+
+        if terminal_trace is not None:
+            self._write_json(
+                run_dir / "terminal_trace.json",
+                terminal_trace,
+            )
+
         self._write_json(run_dir / "run_audit.json", run_audit)
 
         return run_dir
