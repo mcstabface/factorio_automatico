@@ -4,6 +4,8 @@ import os
 import socket
 import struct
 import sys
+import time
+from pathlib import Path
 
 
 SERVERDATA_RESPONSE_VALUE = 0
@@ -56,35 +58,24 @@ def _authenticate(sock: socket.socket, password: str) -> None:
 
         if response_type == SERVERDATA_AUTH_RESPONSE:
             if response_id != auth_request_id:
-                raise RuntimeError(
-                    f"unexpected auth response id: {response_id}"
-                )
+                raise RuntimeError(f"unexpected auth response id: {response_id}")
             return
 
 
-def _execute(sock: socket.socket, command: str) -> str:
+def _execute(sock: socket.socket, command: str) -> None:
     command_request_id = 2
     sock.sendall(_build_packet(command_request_id, SERVERDATA_EXECCOMMAND, command))
 
-    response_chunks: list[str] = []
-
     while True:
         try:
-            response_id, response_type, response_body = _read_packet(sock)
+            response_id, response_type, _response_body = _read_packet(sock)
         except TimeoutError:
-            break
+            return
         except socket.timeout:
-            break
+            return
 
-        print(
-            f"DEBUG packet id={response_id} type={response_type} body={response_body!r}",
-            file=sys.stderr,
-        )
-
-        if response_body:
-            response_chunks.append(response_body)
-
-    return "".join(response_chunks).strip()
+        if response_id == command_request_id and response_type == SERVERDATA_RESPONSE_VALUE:
+            return
 
 
 def main() -> int:
@@ -96,37 +87,49 @@ def main() -> int:
         print("FACTORIO_RCON_PASSWORD is not set", file=sys.stderr)
         return 1
 
+    factorio_user_dir = Path(
+        os.environ.get(
+            "FACTORIO_USER_DATA_DIR",
+            str(
+                Path.home()
+                / ".local/share/Steam/steamapps/compatdata/427520/pfx/drive_c/users/steamuser/AppData/Roaming/Factorio"
+            ),
+        )
+    )
+    output_path = factorio_user_dir / "script-output" / "chatgpt" / "player_position.json"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if output_path.exists():
+        output_path.unlink()
+
     command = (
         "/c "
         "local p = game.player.position; "
-        "rcon.print('{\"x\":' .. p.x .. ',\"y\":' .. p.y .. '}')"
+        "helpers.write_file("
+        "'chatgpt/player_position.json', "
+        "helpers.table_to_json({x = p.x, y = p.y}), "
+        "false, "
+        "0)"
     )
 
     try:
         with socket.create_connection((host, port), timeout=5.0) as sock:
             sock.settimeout(1.0)
-
-            try:
-                _authenticate(sock, password)
-            except (OSError, ValueError, RuntimeError) as exc:
-                print(f"RCON auth failed: {exc}", file=sys.stderr)
-                return 1
-
-            try:
-                response_body = _execute(sock, command)
-            except (OSError, ValueError, RuntimeError) as exc:
-                print(f"RCON execute failed: {exc}", file=sys.stderr)
-                return 1
-    except (OSError, ValueError) as exc:
-        print(f"RCON connection failed: {exc}", file=sys.stderr)
+            _authenticate(sock, password)
+            _execute(sock, command)
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(f"RCON probe failed: {exc}", file=sys.stderr)
         return 1
 
-    if not response_body:
-        print("RCON probe returned empty response", file=sys.stderr)
-        return 1
+    deadline = time.time() + 5.0
+    while time.time() < deadline:
+        if output_path.exists():
+            print(output_path.read_text(encoding="utf-8").strip())
+            return 0
+        time.sleep(0.1)
 
-    print(response_body)
-    return 0
+    print(f"position output file was not created: {output_path}", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":
