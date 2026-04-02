@@ -6,11 +6,4 @@ htmlcov/
 .venv/
 venv/
 runs/
-artifacts/__pycache__/
-contracts/__pycache__/
-validation/__pycache__/
-experts/__pycache__/
-executors/__pycache__/
-director/__pycache__/
-tests/__pycache__/
 .DS_Store
