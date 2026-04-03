@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -n "${BASH_VERSION:-}" ]]; then
+  SCRIPT_SOURCE="${BASH_SOURCE[0]}"
+elif [[ -n "${ZSH_VERSION:-}" ]]; then
+  SCRIPT_SOURCE="${(%):-%N}"
+else
+  SCRIPT_SOURCE="$0"
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${SCRIPT_SOURCE}")" && pwd)"
 # shellcheck source=/dev/null
 source "${SCRIPT_DIR}/factorio_bridge_config.sh"
 
