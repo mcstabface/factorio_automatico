@@ -20,7 +20,7 @@ class MockFactorioClient:
         self.player_position = Position(x=x, y=y)
         return MoveToCommandResult(
             started=True,
-            completed=False,
+            completed=True,
             command="move_to",
             target_position=Position(x=x, y=y),
         )
@@ -83,7 +83,7 @@ def test_execution_result_shape_is_stable_and_deterministic() -> None:
     assert result.target_position.x == 1.0
     assert result.target_position.y == 2.0
     assert result.observed_result.movement_started is True
-    assert result.observed_result.movement_completed is False
+    assert result.observed_result.movement_completed is True
     assert result.error_message is None
 
 
@@ -116,3 +116,35 @@ def test_execute_changes_observed_player_position() -> None:
     assert after_position == Position(x=5.0, y=3.0)
     assert client.calls == [(5.0, 3.0)]
     assert client.observation_calls == 2
+
+
+def test_execution_result_preserves_incomplete_adapter_state() -> None:
+    class IncompleteMoveFactorioClient(MockFactorioClient):
+        def move_to(self, x: float, y: float) -> MoveToCommandResult:
+            self.calls.append((x, y))
+            self.player_position = Position(x=x - 1.0, y=y - 1.0)
+            return MoveToCommandResult(
+                started=True,
+                completed=False,
+                command="move_to",
+                target_position=Position(x=x, y=y),
+            )
+
+    client = IncompleteMoveFactorioClient()
+    executor = FactorioMoveExecutor(client)
+    action = Action(
+        action_id="move-4",
+        action_type=ActionType.MOVE_TO,
+        params={"target_position": {"x": 9.0, "y": 4.0}},
+        preconditions=(),
+        expected_effects=(),
+    )
+
+    result = executor.execute(action)
+
+    assert result.success is True
+    assert result.execution_status == "accepted"
+    assert result.observed_result.movement_started is True
+    assert result.observed_result.movement_completed is False
+    assert result.target_position == Position(x=9.0, y=4.0)
+    assert client.calls == [(9.0, 4.0)]
