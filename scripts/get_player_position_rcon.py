@@ -60,9 +60,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())from __future__ import annotations
-
-import json
-from dataclasses import asdict, is_dataclass
-
-from integrations.factorio.factorio_client import FactorioClient
+    raise SystemExit(main())
