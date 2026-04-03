@@ -188,7 +188,7 @@ def test_run_single_action_pipeline_with_factorio_executor(tmp_path: Path) -> No
     assert execution_result["execution_status"] == "accepted"
     assert execution_result["target_position"] == {"x": 5.0, "y": 3.0}
     assert execution_result["observed_result"]["movement_started"] is True
-    assert execution_result["observed_result"]["movement_completed"] is False
+    assert execution_result["observed_result"]["movement_completed"] is True
     assert execution_result["error_message"] is None
     assert result["post_execution_observation"] == post_execution_observation
     assert post_execution_observation == {"x": 5.0, "y": 3.0}
@@ -215,6 +215,8 @@ def test_run_single_action_pipeline_with_factorio_executor(tmp_path: Path) -> No
     }
     assert terminal_trace["events"][0]["payload"]["tick"] == 123
     assert terminal_trace["events"][2]["status"] == "accepted"
+    assert terminal_trace["events"][2]["payload"]["movement_started"] is True
+    assert terminal_trace["events"][2]["payload"]["movement_completed"] is True
     assert result["terminal_trace"] == terminal_trace
     assert run_audit["run_id"] == RUN_ID
     assert run_audit["executor_type"] == "factorio"
