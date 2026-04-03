@@ -163,7 +163,12 @@ def test_run_single_action_pipeline_with_stub_executor(tmp_path: Path) -> None:
     assert run_audit["pipeline"][3] == "post_execution_observation"
 
 
-def test_run_single_action_pipeline_with_factorio_executor(tmp_path: Path) -> None:
+def test_run_single_action_pipeline_with_factorio_executor(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("FACTORIO_POSITION_COMMAND", raising=False)
+    monkeypatch.delenv("FACTORIO_MOVE_TO_COMMAND", raising=False)
     result = run_single_action(tmp_path, executor_type="factorio")
 
     run_dir = tmp_path / RUN_ID
@@ -226,7 +231,10 @@ def test_run_single_action_pipeline_with_factorio_executor(tmp_path: Path) -> No
 
 def test_run_single_action_pipeline_with_factorio_executor_seed_override(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.delenv("FACTORIO_POSITION_COMMAND", raising=False)
+    monkeypatch.delenv("FACTORIO_MOVE_TO_COMMAND", raising=False)
     result = run_single_action(
         tmp_path,
         executor_type="factorio",
@@ -256,7 +264,12 @@ def test_run_single_action_pipeline_with_factorio_executor_seed_override(
     assert result["terminal_trace"] == terminal_trace
 
 
-def test_run_seed_replay_demo_returns_matching_factorio_runs(tmp_path: Path) -> None:
+def test_run_seed_replay_demo_returns_matching_factorio_runs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("FACTORIO_POSITION_COMMAND", raising=False)
+    monkeypatch.delenv("FACTORIO_MOVE_TO_COMMAND", raising=False)
     result = run_seed_replay_demo(
         artifact_root=tmp_path,
         factorio_seed="viewer-seed-777",
