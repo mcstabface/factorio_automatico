@@ -33,6 +33,7 @@ python scripts/smoke_live_bridge.py
 python scripts/run_live_factorio_demo.py
 python scripts/run_live_factorio_stream_demo.py
 python scripts/run_live_factorio_walk_to_target.py --trace 10 10
+python scripts/run_live_demo_sequence.py
 ```
 
 Recommended usage by purpose:
@@ -43,3 +44,5 @@ Recommended usage by purpose:
   - `python scripts/run_live_factorio_stream_demo.py`
 - direct step-by-step movement trace:
   - `python scripts/run_live_factorio_walk_to_target.py --trace 10 10`
+- one-command smoke + stream sequence:
+  - `python scripts/run_live_demo_sequence.py`

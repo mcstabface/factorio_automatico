@@ -261,79 +261,104 @@ Example:
 ```bash
 python scripts/run_live_factorio_walk_to_target.py 10 10
 python scripts/run_live_factorio_walk_to_target.py --trace 10 10
+```
+
 Optional arguments:
 
+```bash
 python scripts/run_live_factorio_walk_to_target.py [--trace] <x> <y> [tolerance] [max_steps] [min_progress]
+```
 
 This script is intentionally repo-owned logic only.
 It does not move planning into the Director or widen the executor contract.
 
-Live Bridge Workflow
+---
+
+## Live Bridge Workflow
 
 From the repo root, the normal resume flow is:
 
+```bash
 bash scripts/start_factorio_headless.sh
 source scripts/set_factorio_bridge_env.sh
 python scripts/check_factorio_bridge_env.py
 python scripts/demo_status.py
+```
 
 If the validator reports success, you can then run:
 
+```bash
 python scripts/smoke_live_bridge.py
 python scripts/run_live_factorio_demo.py
 python scripts/run_live_factorio_stream_demo.py
 python scripts/run_live_factorio_walk_to_target.py --trace 10 10
+python scripts/run_live_demo_sequence.py
+```
 
 For streaming or screen-sharing, prefer:
 
-scripts/run_live_factorio_stream_demo.py for a cleaner human-readable header/footer around the JSON summary
-scripts/run_live_factorio_walk_to_target.py --trace ... for step-by-step stderr trace plus JSON output
+- `scripts/run_live_factorio_stream_demo.py` for a cleaner human-readable header/footer around the JSON summary
+- `scripts/run_live_factorio_walk_to_target.py --trace ...` for step-by-step stderr trace plus JSON output
+- `scripts/run_live_demo_sequence.py` for a one-command smoke-then-stream path
 
 For more detail, see:
 
-docs/live_factorio_bridge.md
-Running Tests
+- `docs/live_factorio_bridge.md`
+
+---
+
+## Running Tests
 
 From the repo root:
 
+```bash
 pytest -q
+```
 
 Focused deterministic coverage for the stream/demo layer:
 
-pytest -q tests/test_run_live_factorio_walk_to_target.py tests/test_run_live_factorio_demo.py tests/test_run_live_factorio_stream_demo.py tests/test_demo_status.py
+```bash
+pytest -q tests/test_run_live_factorio_walk_to_target.py tests/test_run_live_factorio_demo.py tests/test_run_live_factorio_stream_demo.py tests/test_demo_status.py tests/test_run_live_demo_sequence.py
+```
 
 Guarded live bridge tests:
 
+```bash
 RUN_LIVE_FACTORIO_TESTS=1 pytest -q tests/test_live_factorio_bridge_manual.py
+```
 
 The live tests are intentionally opt-in.
 
-What This Repo Is Trying To Show
+---
+
+## What This Repo Is Trying To Show
 
 This repo is trying to show that a game-playing system does not need to be an opaque “AI agent.”
 
 You can build a clear architecture instead:
 
-observe state through explicit contracts
-validate actions before execution
-keep reasoning bounded
-route execution explicitly
-persist artifacts for replay
-keep each layer inspectable
+- observe state through explicit contracts
+- validate actions before execution
+- keep reasoning bounded
+- route execution explicitly
+- persist artifacts for replay
+- keep each layer inspectable
 
 For this project, that matters more than pretending to be human.
 
-Current Limitations
+---
+
+## Current Limitations
 
 Current limitations are deliberate:
 
-live bridge scope is currently centered on player position and bounded movement
-movement is step-based, not pathfinding
-no broad live world-state ingestion beyond the current seam
-no autonomous gameplay loop
-no hidden planner
-no widened director behavior
-no production hardening beyond what supports the demo and live bridge workflow
+- live bridge scope is currently centered on player position and bounded movement
+- movement is step-based, not pathfinding
+- no broad live world-state ingestion beyond the current seam
+- no autonomous gameplay loop
+- no hidden planner
+- no widened director behavior
+- no production hardening beyond what supports the demo and live bridge workflow
 
 That limitation is a feature here.
 The architecture stays legible because the scope stays bounded.
