@@ -97,4 +97,4 @@ def run_rcon_command(
     with socket.create_connection((host, port), timeout=connect_timeout_seconds) as sock:
         sock.settimeout(socket_timeout_seconds)
         authenticate(sock, password)
-        execute(sock, command)
+        execute(sock, command)  
