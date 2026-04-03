@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MATCH_PATTERN='Factorio\\bin\\x64\\factorio.exe --start-server'
-RCON_PORT="27015"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "${SCRIPT_DIR}/factorio_bridge_config.sh"
 
 echo "Looking for running headless Factorio server processes..."
 

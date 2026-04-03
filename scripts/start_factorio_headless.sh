@@ -1,22 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-STEAM_ROOT="${HOME}/.local/share/Steam"
-PROTON_PATH="${STEAM_ROOT}/steamapps/common/Proton - Experimental/proton"
-FACTORIO_EXE="${STEAM_ROOT}/steamapps/common/Factorio/bin/x64/factorio.exe"
-
-CLIENT_COMPAT_PATH="${STEAM_ROOT}/steamapps/compatdata/427520"
-SERVER_COMPAT_PATH="${HOME}/factorio-server-compat"
-
-SAVE_PATH="${CLIENT_COMPAT_PATH}/pfx/drive_c/users/steamuser/AppData/Roaming/Factorio/saves/Here_we_go.zip"
-SERVER_FACTORIO_DIR="${SERVER_COMPAT_PATH}/pfx/drive_c/users/steamuser/AppData/Roaming/Factorio"
-SERVER_MOD_DIR="${SERVER_FACTORIO_DIR}/mods"
-SERVER_MOD_PATH="${SERVER_MOD_DIR}/chatgpt_bridge_0.1.0"
-
-RCON_HOST="127.0.0.1"
-RCON_PORT="27015"
-RCON_PASSWORD="stabby"
-CLIENT_CONNECT_ADDRESS="127.0.0.1:34197"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "${SCRIPT_DIR}/factorio_bridge_config.sh"
 
 echo "Checking Factorio headless prerequisites..."
 
@@ -81,10 +68,10 @@ export FACTORIO_RCON_HOST="${RCON_HOST}"
 export FACTORIO_RCON_PORT="${RCON_PORT}"
 export FACTORIO_RCON_PASSWORD="${RCON_PASSWORD}"
 export FACTORIO_USER_DATA_DIR="${SERVER_FACTORIO_DIR}"
-export FACTORIO_POSITION_COMMAND="python scripts/get_player_position.py"
-export FACTORIO_RAW_POSITION_COMMAND="python scripts/get_player_position_rcon.py"
-export FACTORIO_MOVE_TO_COMMAND="python scripts/move_to_rcon.py"
-export FACTORIO_WALK_STEP_SECONDS="0.25"
+export FACTORIO_POSITION_COMMAND="${FACTORIO_POSITION_COMMAND}"
+export FACTORIO_RAW_POSITION_COMMAND="${FACTORIO_RAW_POSITION_COMMAND}"
+export FACTORIO_MOVE_TO_COMMAND="${FACTORIO_MOVE_TO_COMMAND}"
+export FACTORIO_WALK_STEP_SECONDS="${FACTORIO_WALK_STEP_SECONDS}"
 
 echo "Bridge environment validation:"
 python scripts/check_factorio_bridge_env.py || {
