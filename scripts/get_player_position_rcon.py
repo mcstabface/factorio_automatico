@@ -5,7 +5,11 @@ import sys
 import time
 from pathlib import Path
 
-from scripts.factorio_rcon_common import run_rcon_command
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from factorio_rcon_common import run_rcon_command
 
 
 def main() -> int:
@@ -56,4 +60,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main())from __future__ import annotations
+
+import json
+from dataclasses import asdict, is_dataclass
+
+from integrations.factorio.factorio_client import FactorioClient

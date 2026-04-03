@@ -5,7 +5,11 @@ import sys
 import time
 from pathlib import Path
 
-from scripts.factorio_rcon_common import run_rcon_command
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from factorio_rcon_common import run_rcon_command
 
 
 def main() -> int:
