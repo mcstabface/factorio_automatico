@@ -325,3 +325,73 @@ def test_main_returns_error_for_negative_min_progress(
     assert result == 1
     assert captured.out == ""
     assert captured.err.strip() == "min_progress must be >= 0"
+
+
+def test_main_emits_expected_summary_and_step_history_shape(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_client = FakeFactorioClient(
+        positions=[
+            Position(x=0.0, y=0.0),
+            Position(x=1.5, y=1.5),
+            Position(x=3.0, y=3.0),
+        ]
+    )
+
+    monkeypatch.setattr(walk_script, "FactorioClient", lambda: fake_client)
+    monkeypatch.setattr(
+        walk_script.sys,
+        "argv",
+        [
+            "run_live_factorio_walk_to_target.py",
+            "5",
+            "5",
+            "0.5",
+            "2",
+            "0.05",
+        ],
+    )
+
+    result = walk_script.main()
+    captured = capsys.readouterr()
+
+    assert result == 1
+
+    summary = _parse_summary(captured.out)
+
+    assert set(summary.keys()) == {
+        "status",
+        "target_position",
+        "tolerance",
+        "max_steps",
+        "min_progress",
+        "initial_position",
+        "final_position",
+        "initial_distance",
+        "final_distance",
+        "steps_taken",
+        "step_history",
+    }
+
+    assert summary["status"] == "max_steps_reached"
+    assert summary["steps_taken"] == 2
+    assert len(summary["step_history"]) == 2
+
+    first_step = summary["step_history"][0]
+    assert set(first_step.keys()) == {
+        "step_index",
+        "before_position",
+        "after_position",
+        "before_distance",
+        "after_distance",
+        "progress_distance",
+        "move_result",
+    }
+
+    assert set(first_step["move_result"].keys()) == {
+        "started",
+        "completed",
+        "command",
+        "target_position",
+    }

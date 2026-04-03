@@ -78,16 +78,14 @@ def _parse_args(argv: list[str]) -> tuple[float, float, float, int, float] | Non
     return target_x, target_y, tolerance, max_steps, min_progress
 
 
-def main() -> int:
-    parsed_args = _parse_args(sys.argv)
-    if parsed_args is None:
-        return 1
-
-    target_x, target_y, tolerance, max_steps, min_progress = parsed_args
-
-    client = FactorioClient()
-    target_position = Position(x=target_x, y=target_y)
-
+def run_walk_to_target(
+    *,
+    client: FactorioClient,
+    target_position: Position,
+    tolerance: float = DEFAULT_TOLERANCE,
+    max_steps: int = DEFAULT_MAX_STEPS,
+    min_progress: float = DEFAULT_MIN_PROGRESS,
+) -> dict[str, object]:
     initial_position = client.get_player_position()
     current_position = initial_position
     initial_distance = _distance(current_position, target_position)
@@ -95,7 +93,7 @@ def main() -> int:
     step_history: list[dict[str, object]] = []
 
     if initial_distance <= tolerance:
-        summary = {
+        return {
             "status": "already_within_tolerance",
             "target_position": _to_plain_value(target_position),
             "tolerance": tolerance,
@@ -108,8 +106,6 @@ def main() -> int:
             "steps_taken": 0,
             "step_history": step_history,
         }
-        print(json.dumps(summary, indent=2))
-        return 0
 
     status = "max_steps_reached"
 
@@ -146,7 +142,7 @@ def main() -> int:
 
     final_distance = _distance(current_position, target_position)
 
-    summary = {
+    return {
         "status": status,
         "target_position": _to_plain_value(target_position),
         "tolerance": tolerance,
@@ -160,8 +156,27 @@ def main() -> int:
         "step_history": step_history,
     }
 
+
+def main() -> int:
+    parsed_args = _parse_args(sys.argv)
+    if parsed_args is None:
+        return 1
+
+    target_x, target_y, tolerance, max_steps, min_progress = parsed_args
+
+    client = FactorioClient()
+    target_position = Position(x=target_x, y=target_y)
+
+    summary = run_walk_to_target(
+        client=client,
+        target_position=target_position,
+        tolerance=tolerance,
+        max_steps=max_steps,
+        min_progress=min_progress,
+    )
+
     print(json.dumps(summary, indent=2))
-    return 0 if status in {"target_reached", "already_within_tolerance"} else 1
+    return 0 if summary["status"] in {"target_reached", "already_within_tolerance"} else 1
 
 
 if __name__ == "__main__":

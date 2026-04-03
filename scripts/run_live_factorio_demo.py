@@ -2,65 +2,50 @@ from __future__ import annotations
 
 import json
 import sys
-from dataclasses import asdict, is_dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from contracts.world_state import Position
 from integrations.factorio.factorio_client import FactorioClient
-
-
-def _to_plain_value(value: object) -> object:
-    if is_dataclass(value):
-        return asdict(value)
-
-    if isinstance(value, tuple):
-        return [_to_plain_value(item) for item in value]
-
-    if isinstance(value, list):
-        return [_to_plain_value(item) for item in value]
-
-    if isinstance(value, dict):
-        return {key: _to_plain_value(item) for key, item in value.items()}
-
-    return value
+from scripts.run_live_factorio_walk_to_target import (
+    DEFAULT_MAX_STEPS,
+    DEFAULT_MIN_PROGRESS,
+    DEFAULT_TOLERANCE,
+    run_walk_to_target,
+)
 
 
 def main() -> int:
     client = FactorioClient()
 
     before_position = client.get_player_position()
+    target_position = Position(
+        x=before_position.x + 5.0,
+        y=before_position.y + 5.0,
+    )
 
-    target_x = before_position.x + 5.0
-    target_y = before_position.y + 5.0
-
-    move_result = client.move_to(target_x, target_y)
-    after_position = client.get_player_position()
+    walk_summary = run_walk_to_target(
+        client=client,
+        target_position=target_position,
+        tolerance=DEFAULT_TOLERANCE,
+        max_steps=DEFAULT_MAX_STEPS,
+        min_progress=DEFAULT_MIN_PROGRESS,
+    )
 
     summary = {
-        "before_position": {
-            "x": before_position.x,
-            "y": before_position.y,
-        },
+        "demo_type": "bounded_multi_step_walk",
         "requested_target": {
-            "x": target_x,
-            "y": target_y,
+            "x": target_position.x,
+            "y": target_position.y,
         },
-        "move_result": _to_plain_value(move_result),
-        "after_position": {
-            "x": after_position.x,
-            "y": after_position.y,
-        },
-        "delta": {
-            "x": after_position.x - before_position.x,
-            "y": after_position.y - before_position.y,
-        },
+        "walk_summary": walk_summary,
     }
 
     print(json.dumps(summary, indent=2))
-    return 0
+    return 0 if walk_summary["status"] in {"target_reached", "already_within_tolerance"} else 1
 
 
 if __name__ == "__main__":
