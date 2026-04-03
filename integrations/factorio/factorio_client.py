@@ -8,6 +8,7 @@ from typing import Any
 
 from contracts.world_state import Position
 
+MOVE_TO_COMPLETION_TOLERANCE = 0.75
 
 @dataclass(frozen=True, slots=True)
 class MoveToCommandResult:
@@ -206,6 +207,15 @@ class FactorioClient:
         self.reset_to_seed(seed)
         return self.get_world_state_snapshot()
 
+    @staticmethod
+    def _is_within_completion_tolerance(
+        observed_position: Position,
+        target_position: Position,
+    ) -> bool:
+        dx = target_position.x - observed_position.x
+        dy = target_position.y - observed_position.y
+        return (dx * dx + dy * dy) ** 0.5 <= MOVE_TO_COMPLETION_TOLERANCE
+
     def move_to(self, x: float, y: float) -> MoveToCommandResult:
         target_position = Position(
             x=float(x),
@@ -218,9 +228,14 @@ class FactorioClient:
         else:
             self._player_position = target_position
 
+        completed = self._is_within_completion_tolerance(
+            observed_position=self._player_position,
+            target_position=target_position,
+        )
+
         return MoveToCommandResult(
             started=True,
-            completed=False,
+            completed=completed,
             command="move_to",
             target_position=target_position,
         )
