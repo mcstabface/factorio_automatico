@@ -275,7 +275,7 @@ def test_main_returns_error_for_wrong_arg_count(
     assert captured.out == ""
     assert (
         captured.err.strip()
-        == "usage: python scripts/run_live_factorio_walk_to_target.py <x> <y> [tolerance] [max_steps] [min_progress]"
+        == "usage: python scripts/run_live_factorio_walk_to_target.py [--trace] <x> <y> [tolerance] [max_steps] [min_progress]"
     )
 
 
@@ -395,3 +395,50 @@ def test_main_emits_expected_summary_and_step_history_shape(
         "command",
         "target_position",
     }
+
+def test_main_emits_trace_to_stderr_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_client = FakeFactorioClient(
+        positions=[
+            Position(x=0.0, y=0.0),
+            Position(x=4.8, y=4.8),
+        ]
+    )
+
+    monkeypatch.setattr(walk_script, "FactorioClient", lambda: fake_client)
+    monkeypatch.setattr(
+        walk_script,
+        "sys",
+        type(
+            "FakeSys",
+            (),
+            {
+                "argv": [
+                    "run_live_factorio_walk_to_target.py",
+                    "--trace",
+                    "5",
+                    "5",
+                    "0.5",
+                    "4",
+                    "0.05",
+                ],
+                "stderr": __import__("sys").stderr,
+            },
+        ),
+    )
+
+    result = walk_script.main()
+    captured = capsys.readouterr()
+
+    assert result == 0
+    summary = _parse_summary(captured.out)
+    assert summary["status"] == "target_reached"
+
+    trace_lines = [line.strip() for line in captured.err.splitlines() if line.strip()]
+    assert trace_lines == [
+        "walk start: from (0.000, 0.000) to (5.000, 5.000) (distance=7.071, tolerance=0.500)",
+        "step 1: before=(0.000, 0.000) after=(4.800, 4.800) remaining=0.283 progress=6.788",
+        "walk stop: target reached in 1 step(s)",
+    ]

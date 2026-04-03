@@ -33,6 +33,7 @@ def main() -> int:
         tolerance=DEFAULT_TOLERANCE,
         max_steps=DEFAULT_MAX_STEPS,
         min_progress=DEFAULT_MIN_PROGRESS,
+        trace_sink=lambda message: print(message, file=sys.stderr),
     )
 
     summary = {
