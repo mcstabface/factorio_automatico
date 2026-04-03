@@ -217,6 +217,7 @@ Important live bridge files include:
 - `scripts/set_factorio_bridge_env.sh`
 - `scripts/factorio_bridge_config.sh`
 - `scripts/check_factorio_bridge_env.py`
+- `scripts/demo_status.py`
 
 ### Demo and smoke scripts
 
@@ -234,6 +235,8 @@ Important live bridge files include:
 
 - `tests/test_factorio_client_live_bridge.py`
 - `tests/test_run_live_factorio_walk_to_target.py`
+- `tests/test_run_live_factorio_demo.py`
+- `tests/test_run_live_factorio_stream_demo.py`
 - `tests/test_live_factorio_bridge_manual.py`
 
 ---
@@ -253,8 +256,6 @@ It stops on one of these conditions:
 - max steps reached
 - stuck / no progress detected
 
-
-```md id="k3yfxs"
 Example:
 
 ```bash
@@ -274,10 +275,10 @@ From the repo root, the normal resume flow is:
 bash scripts/start_factorio_headless.sh
 source scripts/set_factorio_bridge_env.sh
 python scripts/check_factorio_bridge_env.py
+python scripts/demo_status.py
 
 If the validator reports success, you can then run:
 
-```bash
 python scripts/smoke_live_bridge.py
 python scripts/run_live_factorio_demo.py
 python scripts/run_live_factorio_stream_demo.py
@@ -285,8 +286,8 @@ python scripts/run_live_factorio_walk_to_target.py --trace 10 10
 
 For streaming or screen-sharing, prefer:
 
-- `scripts/run_live_factorio_stream_demo.py` for a cleaner human-readable header/footer around the JSON summary
-- `scripts/run_live_factorio_walk_to_target.py --trace ...` for step-by-step stderr trace plus JSON output
+scripts/run_live_factorio_stream_demo.py for a cleaner human-readable header/footer around the JSON summary
+scripts/run_live_factorio_walk_to_target.py --trace ... for step-by-step stderr trace plus JSON output
 
 For more detail, see:
 
@@ -297,9 +298,9 @@ From the repo root:
 
 pytest -q
 
-Deterministic coverage for the walk driver:
+Focused deterministic coverage for the stream/demo layer:
 
-pytest -q tests/test_run_live_factorio_walk_to_target.py
+pytest -q tests/test_run_live_factorio_walk_to_target.py tests/test_run_live_factorio_demo.py tests/test_run_live_factorio_stream_demo.py tests/test_demo_status.py
 
 Guarded live bridge tests:
 
