@@ -222,16 +222,18 @@ class FactorioClient:
             y=float(y),
         )
 
+        last_known_position = self._player_position
+
         live_position = self._execute_live_move_to(x=target_position.x, y=target_position.y)
         if live_position is not None:
             self._player_position = live_position
+            completed = self._is_within_completion_tolerance(
+                observed_position=self._player_position,
+                target_position=target_position,
+            )
         else:
-            self._player_position = target_position
-
-        completed = self._is_within_completion_tolerance(
-            observed_position=self._player_position,
-            target_position=target_position,
-        )
+            self._player_position = last_known_position
+            completed = False
 
         return MoveToCommandResult(
             started=True,
