@@ -253,3 +253,75 @@ def test_main_returns_error_for_non_positive_max_steps(
     assert result == 1
     assert captured.out == ""
     assert captured.err.strip() == "max_steps must be > 0"
+
+
+def test_main_returns_error_for_wrong_arg_count(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        walk_script.sys,
+        "argv",
+        [
+            "run_live_factorio_walk_to_target.py",
+            "5",
+        ],
+    )
+
+    result = walk_script.main()
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert captured.out == ""
+    assert (
+        captured.err.strip()
+        == "usage: python scripts/run_live_factorio_walk_to_target.py <x> <y> [tolerance] [max_steps] [min_progress]"
+    )
+
+
+def test_main_returns_error_for_negative_tolerance(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        walk_script.sys,
+        "argv",
+        [
+            "run_live_factorio_walk_to_target.py",
+            "5",
+            "5",
+            "-0.1",
+        ],
+    )
+
+    result = walk_script.main()
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert captured.out == ""
+    assert captured.err.strip() == "tolerance must be >= 0"
+
+
+def test_main_returns_error_for_negative_min_progress(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        walk_script.sys,
+        "argv",
+        [
+            "run_live_factorio_walk_to_target.py",
+            "5",
+            "5",
+            "0.5",
+            "4",
+            "-0.01",
+        ],
+    )
+
+    result = walk_script.main()
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert captured.out == ""
+    assert captured.err.strip() == "min_progress must be >= 0"
