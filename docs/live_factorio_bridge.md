@@ -54,6 +54,7 @@ These files are repo-owned workflow helpers built on top of the adapter and tran
 
 - `scripts/get_player_position.py`
 - `scripts/run_live_factorio_demo.py`
+- `scripts/run_live_factorio_stream_demo.py`
 - `scripts/smoke_live_bridge.py`
 - `scripts/run_live_factorio_walk_to_target.py`
 - `scripts/check_factorio_bridge_env.py`
@@ -124,9 +125,24 @@ This driver:
   - max steps reached
   - stuck / no progress detected
 
+The walk driver also supports an optional `--trace` flag so step-by-step progress can be emitted to stderr while preserving the JSON summary on stdout.
+
 This logic is intentionally kept **outside** the Director and executor contracts.
 
 ---
+
+### Stream-facing demo wrapper
+
+For a more showable terminal run, use:
+
+- `scripts/run_live_factorio_stream_demo.py`
+
+This wrapper:
+
+- runs `scripts/run_live_factorio_demo.py`
+- preserves the underlying JSON summary on stdout
+- emits a cleaner stream-facing header/footer on stderr
+- keeps presentation logic in the wrapper layer instead of widening the Director or adapter seam
 
 ## Preconditions
 

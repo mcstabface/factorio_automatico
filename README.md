@@ -221,6 +221,7 @@ Important live bridge files include:
 ### Demo and smoke scripts
 
 - `scripts/run_live_factorio_demo.py`
+- `scripts/run_live_factorio_stream_demo.py`
 - `scripts/smoke_live_bridge.py`
 - `scripts/run_live_factorio_walk_to_target.py`
 
@@ -252,14 +253,16 @@ It stops on one of these conditions:
 - max steps reached
 - stuck / no progress detected
 
+
+```md id="k3yfxs"
 Example:
 
 ```bash
 python scripts/run_live_factorio_walk_to_target.py 10 10
-
+python scripts/run_live_factorio_walk_to_target.py --trace 10 10
 Optional arguments:
 
-python scripts/run_live_factorio_walk_to_target.py <x> <y> [tolerance] [max_steps] [min_progress]
+python scripts/run_live_factorio_walk_to_target.py [--trace] <x> <y> [tolerance] [max_steps] [min_progress]
 
 This script is intentionally repo-owned logic only.
 It does not move planning into the Director or widen the executor contract.
@@ -274,9 +277,16 @@ python scripts/check_factorio_bridge_env.py
 
 If the validator reports success, you can then run:
 
+```bash
 python scripts/smoke_live_bridge.py
 python scripts/run_live_factorio_demo.py
-python scripts/run_live_factorio_walk_to_target.py 10 10
+python scripts/run_live_factorio_stream_demo.py
+python scripts/run_live_factorio_walk_to_target.py --trace 10 10
+
+For streaming or screen-sharing, prefer:
+
+- `scripts/run_live_factorio_stream_demo.py` for a cleaner human-readable header/footer around the JSON summary
+- `scripts/run_live_factorio_walk_to_target.py --trace ...` for step-by-step stderr trace plus JSON output
 
 For more detail, see:
 
