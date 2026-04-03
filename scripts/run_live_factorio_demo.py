@@ -38,10 +38,21 @@ def main() -> int:
 
     summary = {
         "demo_type": "bounded_multi_step_walk",
+        "starting_position": {
+            "x": before_position.x,
+            "y": before_position.y,
+        },
+        "requested_offset": {
+            "x": 5.0,
+            "y": 5.0,
+        },
         "requested_target": {
             "x": target_position.x,
             "y": target_position.y,
         },
+        "result_status": walk_summary["status"],
+        "steps_taken": walk_summary["steps_taken"],
+        "final_position": walk_summary["final_position"],
         "walk_summary": walk_summary,
     }
 
