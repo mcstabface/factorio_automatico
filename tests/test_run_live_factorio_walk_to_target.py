@@ -159,3 +159,97 @@ def test_main_returns_stuck_no_progress_when_progress_is_too_small(
     assert summary["steps_taken"] == 1
     assert len(summary["step_history"]) == 1
     assert fake_client.move_calls == [(5.0, 5.0)]
+
+
+def test_main_returns_max_steps_reached_when_progress_continues_but_target_is_not_reached(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_client = FakeFactorioClient(
+        positions=[
+            Position(x=0.0, y=0.0),
+            Position(x=1.0, y=1.0),
+            Position(x=2.0, y=2.0),
+        ]
+    )
+
+    monkeypatch.setattr(walk_script, "FactorioClient", lambda: fake_client)
+    monkeypatch.setattr(
+        walk_script,
+        "sys",
+        type(
+            "FakeSys",
+            (),
+            {
+                "argv": [
+                    "run_live_factorio_walk_to_target.py",
+                    "5",
+                    "5",
+                    "0.5",
+                    "2",
+                    "0.05",
+                ]
+            },
+        ),
+    )
+
+    result = walk_script.main()
+    captured = capsys.readouterr()
+
+    assert result == 1
+
+    summary = _parse_summary(captured.out)
+    assert summary["status"] == "max_steps_reached"
+    assert summary["steps_taken"] == 2
+    assert len(summary["step_history"]) == 2
+    assert fake_client.move_calls == [(5.0, 5.0), (5.0, 5.0)]
+
+
+def test_main_returns_error_for_invalid_numeric_args(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        walk_script.sys,
+        "argv",
+        [
+            "run_live_factorio_walk_to_target.py",
+            "five",
+            "5",
+        ],
+    )
+
+    result = walk_script.main()
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert captured.out == ""
+    assert (
+        captured.err.strip()
+        == "x, y, tolerance, max_steps, and min_progress must be numeric"
+    )
+
+
+def test_main_returns_error_for_non_positive_max_steps(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        walk_script.sys,
+        "argv",
+        [
+            "run_live_factorio_walk_to_target.py",
+            "5",
+            "5",
+            "0.5",
+            "0",
+            "0.05",
+        ],
+    )
+
+    result = walk_script.main()
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert captured.out == ""
+    assert captured.err.strip() == "max_steps must be > 0"
