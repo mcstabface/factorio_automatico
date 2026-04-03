@@ -64,6 +64,37 @@ fi
 echo "Headless server launched with PID ${SERVER_PID}."
 echo
 
+echo "Waiting for RCON to accept connections..."
+RCON_READY=0
+for _ in {1..20}; do
+  if python - <<PY
+import socket
+import sys
+
+sock = socket.socket()
+sock.settimeout(0.5)
+try:
+    sock.connect(("${RCON_HOST}", int("${RCON_PORT}")))
+except OSError:
+    sys.exit(1)
+else:
+    sys.exit(0)
+finally:
+    sock.close()
+PY
+  then
+    RCON_READY=1
+    break
+  fi
+
+  sleep 0.5
+done
+
+if [[ "${RCON_READY}" -ne 1 ]]; then
+  echo "RCON did not become ready on ${RCON_HOST}:${RCON_PORT}." >&2
+  exit 1
+fi
+
 export FACTORIO_RCON_HOST="${RCON_HOST}"
 export FACTORIO_RCON_PORT="${RCON_PORT}"
 export FACTORIO_RCON_PASSWORD="${RCON_PASSWORD}"
