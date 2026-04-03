@@ -82,7 +82,7 @@ def test_live_move_command_updates_cached_player_position(
     assert client.get_player_position() == Position(x=5.0, y=3.0)
 
 
-def test_failed_live_move_command_falls_back_to_target_position(
+def test_failed_live_move_command_preserves_cached_player_position(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def _fake_run(*args, **kwargs) -> subprocess.CompletedProcess[str]:
@@ -95,14 +95,17 @@ def test_failed_live_move_command_falls_back_to_target_position(
 
     monkeypatch.setattr(subprocess, "run", _fake_run)
 
-    client = FactorioClient(move_to_command="fake-move-command")
+    client = FactorioClient(
+        move_to_command="fake-move-command",
+        starting_position=Position(x=1.0, y=2.0),
+    )
 
     result = client.move_to(8.0, -1.5)
 
     assert result.started is True
-    assert result.completed is True
+    assert result.completed is False
     assert result.target_position == Position(x=8.0, y=-1.5)
-    assert client.get_player_position() == Position(x=8.0, y=-1.5)
+    assert client.get_player_position() == Position(x=1.0, y=2.0)
 
 
 def test_live_move_command_marks_completed_false_when_observed_position_is_outside_tolerance(
@@ -137,7 +140,7 @@ def test_live_move_command_marks_completed_false_when_observed_position_is_outsi
     assert client.get_player_position() == Position(x=12.0, y=12.0)
 
 
-def test_failed_live_move_command_still_falls_back_to_target_position_and_marks_completed_true(
+def test_failed_live_move_command_from_default_position_marks_completed_false(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def _fake_run(*args, **kwargs) -> subprocess.CompletedProcess[str]:
@@ -155,6 +158,6 @@ def test_failed_live_move_command_still_falls_back_to_target_position_and_marks_
     result = client.move_to(8.0, -1.5)
 
     assert result.started is True
-    assert result.completed is True
+    assert result.completed is False
     assert result.target_position == Position(x=8.0, y=-1.5)
-    assert client.get_player_position() == Position(x=8.0, y=-1.5)
+    assert client.get_player_position() == Position(x=0.0, y=0.0)
