@@ -76,6 +76,23 @@ fi
 
 echo "Headless server launched with PID ${SERVER_PID}."
 echo
+
+export FACTORIO_RCON_HOST="${RCON_HOST}"
+export FACTORIO_RCON_PORT="${RCON_PORT}"
+export FACTORIO_RCON_PASSWORD="${RCON_PASSWORD}"
+export FACTORIO_USER_DATA_DIR="${SERVER_FACTORIO_DIR}"
+export FACTORIO_POSITION_COMMAND="python scripts/get_player_position.py"
+export FACTORIO_RAW_POSITION_COMMAND="python scripts/get_player_position_rcon.py"
+export FACTORIO_MOVE_TO_COMMAND="python scripts/move_to_rcon.py"
+export FACTORIO_WALK_STEP_SECONDS="0.25"
+
+echo "Bridge environment validation:"
+python scripts/check_factorio_bridge_env.py || {
+  echo "Bridge environment validation failed." >&2
+  exit 1
+}
+
+echo
 echo "Client connect address:"
 echo "  ${CLIENT_CONNECT_ADDRESS}"
 echo
@@ -85,3 +102,4 @@ echo
 echo "Then test:"
 echo "  python scripts/get_player_position_rcon.py"
 echo "  python scripts/smoke_live_bridge.py"
+echo "  python scripts/run_live_factorio_demo.py"
